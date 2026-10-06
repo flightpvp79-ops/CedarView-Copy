@@ -20,31 +20,43 @@ jobs:
           arch: 'win64_msvc2022_64'
           modules: 'qtwebengine'
 
-      - name: Configure
+      - name: Configure CedarView
         shell: cmd
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S cedarview-main -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build CedarView
         shell: cmd
         run: cmake --build build --config Release
 
       - name: Find CedarView executable
         shell: powershell
         run: |
+          Write-Host "Executables produced by build:"
           Get-ChildItem -Path build -Recurse -Filter "*.exe"
 
       - name: Create Windows package
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path package
-          $exe = Get-ChildItem -Path build -Recurse -Filter "cedarview.exe" | Select-Object -First 1
+
+          $exe = Get-ChildItem -Path build -Recurse -Filter "cedarview.exe" |
+            Select-Object -First 1
+
           if (-not $exe) {
             throw "Could not find cedarview.exe"
           }
-          Copy-Item $exe.FullName package\CedarView.exe
-          windeployqt --release --qmldir qml package\CedarView.exe
 
-      - name: Upload CedarView
+          Write-Host "Found CedarView at:"
+          Write-Host $exe.FullName
+
+          Copy-Item $exe.FullName package\CedarView.exe
+
+          windeployqt `
+            --release `
+            --qmldir cedarview-main\qml `
+            package\CedarView.exe
+
+      - name: Upload CedarView Windows build
         uses: actions/upload-artifact@v4
         with:
           name: CedarView-Windows
